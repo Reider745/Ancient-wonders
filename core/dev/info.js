@@ -1,2 +1,2 @@
 IMPORT("DungeonAPI");
-Dungeon.setDir(".assets/.structure");
+Dungeon.setDir("assets/.structure");
