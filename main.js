@@ -1,8 +1,8 @@
 /*
 BUILD INFO:
-  dir: .core/dev
-  target: .main.js
-  files: 12
+  dir: core/dev
+  target: main.js
+  files: 13
 */
 
 
@@ -10,7 +10,34 @@ BUILD INFO:
 // file: info.js
 
 IMPORT("DungeonAPI");
-Dungeon.setDir(".assets/.structure");
+IMPORT("add-onCreter");
+Dungeon.setDir("assets/structure");
+let Addon = new Addons.register("aw");
+Addon.registerAddon({
+    name: "Ancient wonders", 
+    description: "установите этот АДДОН!"
+},{
+    name: "Ancient wonders", 
+    description: "установите этот АДДОН!"
+})
+Addon.registerEntity("aggressive", {
+    name: "murderer", 
+    family: ["zombie"], 
+    speed: 0.5,
+    box: {
+        w: 2, 
+        h: 2
+    }, 
+    angry: {
+        range: 15, 
+        speed: 1, 
+        damage: 8
+    }, 
+    health: {
+        max: 50
+    }
+});
+//File.update("Tower_of_evil - Копия.json", false);
 
 
 
@@ -18,68 +45,54 @@ Dungeon.setDir(".assets/.structure");
 // file: structure.js
 
 var ItemGenerate = new ItemGenerate();
-ItemGenerate.setPrototype({
-    isGenerate: function (slot, x, y, z, id, data, count){
-        return true;
-    }
-});
-ItemGenerate.addItem(ItemID.piece1, 0.05, {max: 1});
-ItemGenerate.addItem(ItemID.piece2, 0.05, {max: 1});
-ItemGenerate.addItem(ItemID.piece3, 0.05, {max: 1});
-ItemGenerate.addItem(264, 0.1, {max: 3});
-ItemGenerate.addItem(ItemID.loreClass1, 0.005, {max: 1});
-ItemGenerate.addItem(ItemID.loreClass2, 0.005, {max: 1});
-ItemGenerate.addItem(ItemID.loreClass3, 0.005, {max: 1});
-ItemGenerate.addItem(265, 1, {max: 3});
-ItemGenerate.addItem(322, 0.01, {max: 1});
-ItemGenerate.addItem(266, 0.1, {max: 3});
-ItemGenerate.addItem(ItemID.rune1, 0.5, {max: 1});
-ItemGenerate.addItem(ItemID.rune2, 0.5, {max: 1});
-ItemGenerate.addItem(ItemID.rune2, 0.5, {max: 1});
-ItemGenerate.addItem(ItemID.rune4, 0.5, {max: 1});
+ItemGenerate.addItem(ItemID.piece1, 5, {max: 1});
+ItemGenerate.addItem(ItemID.piece2, 5, {max: 1});
+ItemGenerate.addItem(ItemID.piece3, 5, {max: 1});
+ItemGenerate.addItem(ItemID.loreClass1, 1, {max: 1});
+ItemGenerate.addItem(ItemID.loreClass2, 1, {max: 1});
+ItemGenerate.addItem(ItemID.loreClass3, 1, {max: 1});
+
+ItemGenerate.addItem(264, 10, {max: 3});
+ItemGenerate.addItem(265, 100, {max: 3});
+ItemGenerate.addItem(322, 1, {max: 1});
+ItemGenerate.addItem(266, 10, {max: 3});
+ItemGenerate.addItem(ItemID.rune1, 50, {max: 1});
+ItemGenerate.addItem(ItemID.rune2, 50, {max: 1});
+ItemGenerate.addItem(ItemID.rune3, 50, {max: 1});
+ItemGenerate.addItem(ItemID.rune4, 50, {max: 1});
+
 let TowerOfEvil = new DungeonAPI("Tower_of_evil.json");
-TowerOfEvil.setPrototype({
-    isSetBlock: function(x, y, z, id, data, identifier){
-        return true;
-    }
-});
+
 let OrdinaryTemple = new DungeonAPI("Ordinary_temple.json");
-OrdinaryTemple.setPrototype({
-    isSetBlock: function(x, y, z, id, data, identifier){
-        return true;
-    }
-});
+
 let ToweraOfDarkness = new DungeonAPI("Tower_of_darkness.json");
-ToweraOfDarkness.setPrototype({
-    isSetBlock: function(x, y, z, id, data, identifier){
-        return true;
-    }
-});
+
 Callback.addCallback("GenerateChunk", function(chunkX, chunkZ, random){
     if(random.nextInt(100) < 1){
         let coords = GenerationUtils.findSurface(chunkX*16 + random.nextInt(16), 96, chunkZ*16 + random.nextInt(16));
         TowerOfEvil.setStructure(coords.x, coords.y, coords.z, 0);
-        ItemGenerate.fillChest(coords.x, coords.y+1, coords.z);
+        ItemGenerate.fillChestSit(coords.x, coords.y+1, coords.z, random);
     } 
 });
+
 Callback.addCallback("GenerateChunk", function(chunkX, chunkZ, random){
     if(random.nextInt(100) < 1){
         let coords = GenerationUtils.findSurface(chunkX*16 + random.nextInt(16), 96, chunkZ*16 + random.nextInt(16));  
          OrdinaryTemple.setStructure(coords.x, coords.y, coords.z, 0);
-         ItemGenerate.fillChest(coords.x, coords.y+2, coords.z-1);
-         ItemGenerate.fillChest(coords.x, coords.y+2, coords.z);
-         ItemGenerate.fillChest(coords.x+1, coords.y+2, coords.z);
-         ItemGenerate.fillChest(coords.x+1, coords.y+2, coords.z-1);
+         ItemGenerate.fillChestSit(coords.x, coords.y+2, coords.z-1, random);
+         ItemGenerate.fillChestSit(coords.x, coords.y+2, coords.z, random);
+         ItemGenerate.fillChestSit(coords.x+1, coords.y+2, coords.z, random);
+         ItemGenerate.fillChestSit(coords.x+1, coords.y+2, coords.z-1, random);
     } 
 });
 Callback.addCallback("GenerateChunk", function(chunkX, chunkZ, random){
     if(random.nextInt(100) < 1){
         let coords = GenerationUtils.findSurface(chunkX*16 + random.nextInt(16), 96, chunkZ*16 + random.nextInt(16));
         ToweraOfDarkness.setStructure(coords.x, coords.y, coords.z, 0);
-        ItemGenerate.fillChest(coords.x, coords.y, coords.z-1);
-        ItemGenerate.fillChest(coords.x, coords.y, coords.z+1);
-        ItemGenerate.fillChest(coords.x+1, coords.y, coords.z);
-        ItemGenerate.fillChest(coords.x-1, coords.y, coords.z);
+        ItemGenerate.fillChestSit(coords.x, coords.y, coords.z-1, random);
+        ItemGenerate.fillChestSit(coords.x, coords.y, coords.z+1, random);
+        ItemGenerate.fillChestSit(coords.x+1, coords.y, coords.z, random);
+        ItemGenerate.fillChestSit(coords.x-1, coords.y, coords.z, random);
     } 
 });
 
@@ -234,17 +247,17 @@ var MagicCore = {
     }, 
     getValue: function (player){
         let o = {
-                name: "нет класса",
-                magisMax: 0,
-                magis: 0, 
-                ProtectionMax: 0, 
-                Protection: 0, 
-                necromancerMax: 0, 
-                necromancer: 0,
-                AspectsMax: 2, 
-                AspectsNow: 1, 
-                Aspects: 0
-            };
+            name: "noy",
+            magisMax: 0,
+            magis: 0, 
+            ProtectionMax: 0, 
+            Protection: 0, 
+            necromancerMax: 0, 
+            necromancer: 0,
+            AspectsMax: 2, 
+            AspectsNow: 1, 
+            Aspects: 0
+        };
         if(!this.isClass()){
             o = classPlayer[player];
         } 
@@ -349,8 +362,20 @@ let Render = {
         model.addBox(2/16, 0.0625, 2/16, 14/16, 0.125, 14/16, 1, 0);
         model.addBox(3/16, 0.125, 3/16, 13/16, 1 - 0.0625, 13/16, 1, 0);
         model.addBox(2/16, 1 - 0.0625, 2/16, 14/16, 1, 14/16, 1, 0);
-    }
+    }, 
+    importOBJ: function (id, texture, obj){
+        let file = __dir__ + "/assets/model/" + obj;
+        var mesh = new RenderMesh();
+        var renderAPI = new ICRender.Model(); 
+        BlockRenderer.setStaticICRender(id, -1, renderAPI); 
+        var modelAPI = new BlockRenderer.Model(mesh);  
+       renderAPI.addEntry(modelAPI);
+       mesh.importFromFile(file, "obj", null);
+       mesh.setBlockTexture(texture, 0);
+    } 
 };
+
+
 
 
 
@@ -591,6 +616,34 @@ Item.registerUseFunctionForID(ItemID.bookk, function(coords, item, block, player
         Game.message(c.Aspects + "/" + c.AspectsNow);
     }
 });
+
+
+
+
+// file: items/MagicWand.js
+
+var Wands = {
+    prot: {}, 
+    code: {}, 
+    stick: {}, 
+    addStick: function (id){
+        this.stick[id] = true;
+    },
+    isStick: function (id){
+        if(this.stick[id]){
+            return true;
+        }else{
+            return false;
+        }
+    }, 
+    getCode: function (data){
+        return this.code[data];
+    }, 
+    setPrototype: function(obj){
+        prot[obj.id] = obj;
+    }
+};
+Wands.addStick(264);
 
 
 

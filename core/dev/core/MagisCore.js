@@ -112,17 +112,17 @@ var MagicCore = {
     }, 
     getValue: function (player){
         let o = {
-                name: "нет класса",
-                magisMax: 0,
-                magis: 0, 
-                ProtectionMax: 0, 
-                Protection: 0, 
-                necromancerMax: 0, 
-                necromancer: 0,
-                AspectsMax: 2, 
-                AspectsNow: 1, 
-                Aspects: 0
-            };
+            name: "noy",
+            magisMax: 0,
+            magis: 0, 
+            ProtectionMax: 0, 
+            Protection: 0, 
+            necromancerMax: 0, 
+            necromancer: 0,
+            AspectsMax: 2, 
+            AspectsNow: 1, 
+            Aspects: 0
+        };
         if(!this.isClass()){
             o = classPlayer[player];
         } 

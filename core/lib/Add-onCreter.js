@@ -92,17 +92,7 @@ var Addons = {
             if(!FileTools.isExists(DR+name+"/manifest.json"))
                 FileTools.WriteJSON(DR+name+"/manifest.json", RM, true);
         }
-        //создание новой торговли
-        
-        this.RegisterTrading = function(obj){
-            addFile(DR+name+"/trading");
-            let trade = {
-                "tiers": [{
-                    "groups": [
-                    ]
-                }]
-            };
-        }
+       
         //создание нового моба
         this.registerEntity = function(typ, obj){
             let BE = {};
