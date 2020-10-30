@@ -16,9 +16,14 @@
                                                   if(d.Aspects>=500){
                                                  if(d.magis>=30){
                                                      
-      let Item = TileEntity.getTileEntity(coords.x, coords.y, coords.z, b).data.item;
-                               b.spawnDroppedItem(coords.x, coords.y+1, coords.z, Item.id, 1, Item.data);
-                    TileEntity.getTileEntity(coords.x, coords.y, coords.z, b).drop();
+      let Itemm = TileEntity.getTileEntity(coords.x, coords.y, coords.z, b).data.item;
+      let pa = new PlayerActor(player);
+                              if(pa.getGameMode()==0){
+                                  TileEntity.getTileEntity(coords.x, coords.y, coords.z, b).drop(player);
+                              }else{
+                                 TileEntity.getTileEntity(coords.x, coords.y, coords.z, b).drop(player);
+                                  b.spawnDroppedItem(coords.x, coords.y+1, coords.z, Itemm.id, 1, Itemm.data);
+                              }b.spawnDroppedItem(coords.x, coords.y+1, coords.z, Itemm.id, 1, Itemm.data);
                     d.Aspects -= 500;
                     if(Math.random()<=0.5){
                         if(d.AspectsNow + 500 <= d.AspectsMax){
@@ -26,10 +31,14 @@
                         }else{
                             d.AspectsNow=d.AspectsMax;
                         }        
-                        classPlayer[player] = d;                                                                                               
+                        MagicCore.setParameters(player, d);                                                                                             
                                                      }
-                                                    } 
-                                                } 
+                                                    }else{
+                                                        Game.message("для этого ритуала нужно минимум магия 30 уровня");
+                                                    }
+                                                }else{
+                                                    Game.message("для этого ритуала нужно минимум 500 аспектов");
+                                                }
                                             } 
                                         } 
                                     } 

@@ -41,9 +41,14 @@ let Ritual = {
                         }else{
                             d.AspectsNow=d.AspectsMax;
                         }        
-                        classPlayer[player] = d;     
+                        MagicCore.setParameters(player, d);   
     }
+    }else{
+        Game.message("для этого ритуала нужно минимум magis "+description.magis+" уровня");
     }
+    }else{
+Game.message("для этого ритуала нужно минимум  "+description.aspects+" аспектов");
+        
     }
    } 
     }
