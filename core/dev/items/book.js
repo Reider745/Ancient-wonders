@@ -2,6 +2,11 @@ IDRegistry.genItemID("bookk");
 Item.createItem("bookk", "Class book", {name: "book", meta: 0}, {stack: 1});
 Translation.addTranslation("Class book", {ru: "книга класса"});
 let guiBookPlayer = {};
+Network.addClientPacket("aw.open", function(packetData) {
+    let con = BookAPI.getCont(packetData.player).con;
+    let gui = BookAPI.getGui(packetData.player).gui;
+    con.openAs(gui);
+});
 let BookAPI = {
     container: {},
     is: function (player, obj){
@@ -20,15 +25,16 @@ let BookAPI = {
     getCont: function (c) {
         if(!this.is(c, this.container)){
             this.container[c] = {
-                container: new UI.Container()
+                con: new UI.Container()
             };
         }
-        return this.container[c].container;
+        return this.container[c];
 
     }, 
     getGui: function(player){
         let c = MagicCore.getValue(player);
             guiBookPlayer[player] = {
+                name: "gui",
                 gui: new UI.StandartWindow({
             standart: {
                 background: {
@@ -49,20 +55,29 @@ bitmap: "btn_close", scale: 3},
             }, 
         })
             };
-        return guiBookPlayer[player].gui;
+        return guiBookPlayer[player];
     }, 
     open: function(player){
-        let con = this.getCont(player);
-        con.openAs(this.getGui(player));
+        let client = Network.getClientForPlayer(player);
+        if(client){
+            client.send("aw.open", {
+                player: player
+            }); 
+        }
     }
 };
-Item.registerUseFunctionForID(ItemID.bookk, function(coords, item, block, player){
+Callback.addCallback("ItemUse", function(coords, item, block, isExternal, player){
+    if(item.id == ItemID.bookk){
     var client = Network.getClientForPlayer(player);
     if (client) {
-        if(block.id != BlockID.rityalPedestal){
-            BookAPI.open(player);
-        } 
-        let c = MagicCore.getValue(Player.get());
-        Game.message(c.Aspects + "/" + c.AspectsNow);
+        if(Entity.getSneaking(player)==false){
+            if(block.id != BlockID.rityalPedestal){
+                BookAPI.open(player);
+            } 
+        }else{
+            let c = MagicCore.getValue(player);
+            PlayerAC.message(player, c.Aspects + "/" + c.AspectsNow);
+        }
+    }
     }
 });
