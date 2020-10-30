@@ -1,10 +1,21 @@
 Network.addClientPacket("aw.classPlayer", function(packetData) {
+    Game.message("§2вы выбрали класс: "+packetData.Class);
     classPlayer[packetData.player] = Class[packetData.Class];
 });
 Network.addClientPacket("aw.parameterAdd", function(packetData) {
     MagicCore.piece(packetData.player, packetData.parameter);
 });
 var classPlayer = {};
+Saver.addSavesScope("class",
+    function read(scope) {
+        classPlayer = scope.classPlayer || {};
+    },
+    function save() {
+        return {
+            classPlayer: classPlayer,
+        };
+    }
+);
 const Class = {
     mage: {
         name: "mage", 
@@ -45,7 +56,7 @@ const Class = {
 };
 Callback.addCallback("PlayerAttack", function(player){
     let c = MagicCore.getValue(player);
-    if(classPlayer != false){
+    if(MagicCore.isClass(player)){
         let r = Math.floor(Math.random()*10)
         if(c.Aspects + r <= c.AspectsNow){
             classPlayer[player].Aspects += r;
@@ -55,16 +66,12 @@ Callback.addCallback("PlayerAttack", function(player){
         
     }
 });
-Saver.addSavesScope("BackpacksScope",
-    function read(scope) {
-        classPlayer = scope.classPlayer || {};
-    },
-    function save() {
-        return {
-            classPlayer: classPlayer,
-        };
+function delItem(player, item){
+    let pa = new PlayerActor(player);
+    if(pa.getGameMode() == 0){
+        Entity.setCarriedItem(player, item.id, item.count-1, item.data);
     }
-);
+}
 var MagicCore = {
     setArmor: function (id, parameter, value){
         Item.registerNameOverrideFunction(id, function(item, name) {
@@ -92,15 +99,18 @@ var MagicCore = {
     }, 
     isClass: function (player){
         let key = Object.keys(classPlayer);
+        let obj = {};
         if(classPlayer == {}){
                 return false;
         }
         for(i in key){
-            if(key[i] == player){
-                return true;
-            }else{
-                return false;
-            }
+            let k = key[i];
+            obj[k] = true;
+        }
+        if(obj[player]){
+            return true;
+        }else{
+            return false;
         }
     }, 
     isExistsClass: function (){
@@ -111,39 +121,50 @@ var MagicCore = {
         }
     }, 
     getValue: function (player){
-        let o = {
-            name: "noy",
-            magisMax: 0,
-            magis: 0, 
-            ProtectionMax: 0, 
-            Protection: 0, 
-            necromancerMax: 0, 
-            necromancer: 0,
-            AspectsMax: 2, 
-            AspectsNow: 1, 
-            Aspects: 0
-        };
-        if(!this.isClass()){
+        let o;
+        if(this.isClass(player)){
             o = classPlayer[player];
-        } 
+        }else{
+            o = {
+                name: "noy",
+                magisMax: 0,
+                magis: 0, 
+                ProtectionMax: 0, 
+                Protection: 0, 
+                necromancerMax: 0, 
+                necromancer: 0,
+                AspectsMax: 2, 
+                AspectsNow: 1, 
+                Aspects: 0
+            };
+        }
         return o;
     }, 
     piece: function(player, parameter){
-        if(MagicCore.isClass(player)){
+        if(this.isClass(player)){
             let cv = MagicCore.getValue(player);
             if(cv[parameter] + 5 <= cv[parameter+"Max"]){
-                Player.decreaseCarriedItem(1) ;
+                delItem(player, {id:0,data:0,count:1}) ;
                 cv[parameter] += 5;
                 Game.message("§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
-                classPlayer[player] = cv;
+                MagicCore.setParameters(player, cv);
             }else{
                 Game.message("§4параметр "+parameter+" максимального уровня");
             }
         }else{
             Game.message("§4у вас нет класса")
         }
+    }, 
+    setParameters: function (player, obj){
+        if(this.isClass(player)){
+            classPlayer[player] = obj;
+            Network.sendToServer("aw.sp", classPlayer);
+        }
     }
 };
+Network.addServerPacket("aw.sp", function(client, data) {
+    classPlayer = data;
+});
 MagicCore.setArmor(310, "Protection", 50);
 MagicCore.setArmor(311, "Protection", 50);
 MagicCore.setArmor(312, "Protection", 50);
