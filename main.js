@@ -13,17 +13,13 @@ IMPORT("DungeonAPI");
 Dungeon.setDir("assets/structure");
 /*
 в мултиплеере не работают
-1)книга классов
-2)почемуто не устанавливается класс 
-
-все остольное работает
-1)волшебная палочка(но что бы использовать нужен класс)
-2)генерация структур
-3)волшебная палочка(но что бы использовать нужен класс)
+1)с волшебной палкой могут быть баги в мп
 
 кст либу тоже делал я :D
 желаю удачи
 */
+Dungeon.transferStructureAPI("Tower_of_darkness.json", "Tower_of_darkness2.json", false);
+Dungeon.transferDungeonAPI("Tower_of_darkness2.json", "Tower_of_darkness3.json", false);
 
 
 
@@ -493,15 +489,15 @@ var MagicCore = {
         if(this.isClass(player)){
             let cv = MagicCore.getValue(player);
             if(cv[parameter] + 5 <= cv[parameter+"Max"]){
-                delItem(player, {id:0,data:0,count:1}) ;
+                delItem(player, {id:0,data:0,count:1});
                 cv[parameter] += 5;
-                Game.message("§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
+                PlayerAC.message(player, "§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
                 MagicCore.setParameters(player, cv);
             }else{
-                Game.message("§4параметр "+parameter+" максимального уровня");
+                PlayerAC.message(player, "§4параметр "+parameter+" максимального уровня");
             }
         }else{
-            Game.message("§4у вас нет класса")
+            PlayerAC.message(player, "§4у вас нет класса")
         }
     }, 
     setParameters: function (player, obj){
@@ -1128,7 +1124,6 @@ Network.addClientPacket("aw.w", function(packetData) {
 });
 Network.addClientPacket("aw.c", function(packetData) {
     classPlayer = packetData;
-    FileTools.WriteJSON(__packdir__+"gh.json", classPlayer, true);
 });
 Network.addClientPacket("aw.text", function(packetData) {
     Game.message(packetData);
@@ -1932,6 +1927,13 @@ Ritual.lvl1({
     aspects: 500, 
     magis: 20
 });
+});
+ModAPI.registerAPI("AncientWondersAPI", {
+    ItemGenerate: ItemGenerate,
+    MagicCore: MagicCore,
+    Wands: Wands,
+    Ritual: Ritual,
+    delItem: delItem
 });
 
 

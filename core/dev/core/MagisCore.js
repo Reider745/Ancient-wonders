@@ -144,15 +144,15 @@ var MagicCore = {
         if(this.isClass(player)){
             let cv = MagicCore.getValue(player);
             if(cv[parameter] + 5 <= cv[parameter+"Max"]){
-                delItem(player, {id:0,data:0,count:1}) ;
+                delItem(player, {id:0,data:0,count:1});
                 cv[parameter] += 5;
-                Game.message("§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
+                PlayerAC.message(player, "§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
                 MagicCore.setParameters(player, cv);
             }else{
-                Game.message("§4параметр "+parameter+" максимального уровня");
+                PlayerAC.message(player, "§4параметр "+parameter+" максимального уровня");
             }
         }else{
-            Game.message("§4у вас нет класса")
+            PlayerAC.message(player, "§4у вас нет класса")
         }
     }, 
     setParameters: function (player, obj){

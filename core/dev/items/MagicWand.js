@@ -128,7 +128,6 @@ Network.addClientPacket("aw.w", function(packetData) {
 });
 Network.addClientPacket("aw.c", function(packetData) {
     classPlayer = packetData;
-    FileTools.WriteJSON(__packdir__+"gh.json", classPlayer, true);
 });
 Network.addClientPacket("aw.text", function(packetData) {
     Game.message(packetData);

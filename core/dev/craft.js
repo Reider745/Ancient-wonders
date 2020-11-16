@@ -98,3 +98,10 @@ Ritual.lvl1({
     magis: 20
 });
 });
+ModAPI.registerAPI("AncientWondersAPI", {
+    ItemGenerate: ItemGenerate,
+    MagicCore: MagicCore,
+    Wands: Wands,
+    Ritual: Ritual,
+    delItem: delItem
+});
