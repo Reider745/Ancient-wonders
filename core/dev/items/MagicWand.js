@@ -27,6 +27,11 @@ var Wands = {
     prot: {}, 
     stick: {}, 
     addStick: function (obj){
+        obj.bonus = obj.bonus || {};
+        obj.bonus.necromancer = obj.bonus.necromancer || 0;
+        obj.bonus.Protection = obj.bonus.Protection || 0;
+        obj.bonus.magis = obj.bonus.magis || 0;
+        obj.bonus.aspects = obj.bonus.aspects || 0;
         this.stick[obj.id] = obj;
         Item.setMaxDamage(obj.id, 32000);
         Item.setToolRender(obj.id, true);
@@ -97,6 +102,11 @@ var Wands = {
         return code;
     }, 
     setPrototype: function(id, obj){
+        obj.activate = obj.activate || {};
+        obj.activate.necromancer = obj.activate.necromancer || 0;
+        obj.activate.Protection = obj.activate.Protection || 0;
+        obj.activate.magis = obj.activate.magis || 0;
+        obj.activate.aspects = obj.activate.aspects || 0;
         this.prot[id] = obj;
     }, 
     save: function (data, packet, player){
@@ -148,7 +158,33 @@ Callback.addCallback("ItemUse", function(coords, item, block, isExternal, player
                 if(code.event == "itemUse")
                 if(Wands.isCompatibility(code.id1, code.id2)){
                     if(code.id2!=0){
-                         Wands.getPrototype(code.id2).setFunction({coords: coords, item: item, block: block, player: player, entity: player});
+                       let prot = Wands.getPrototype(code.id2);
+                       let c = MagicCore.getValue(player);
+                       let w = Wands.getStick(item.id);
+                       if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
+                           if(c.magis >= prot.activate.magis - w.bonus.magis){
+                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
+                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
+                           if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
+                           MagicCore.setParameters(player, c);
+                           
+                           Wands.getPrototype(code.id2).setFunction({coords: coords, item: item, block: block, player: player, entity: player});
+                           
+                           
+                           }else{
+                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
+                           }
+                       }else{
+                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
+                        }
+                        
+                        
                     }else{
                         PlayerAC.message(player, "нельзя использовать пустое заклинание");
                     }
@@ -166,7 +202,32 @@ Callback.addCallback("ItemUsingComplete", function(item, player){
                     if(code.event == "usingReleased"){
                         if(Wands.isCompatibility(code.id1, code.id2)){
                         if(code.id2 != 0){
-                             Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: item, block: {id:0,data:0}, player: player, entity: player});
+                            
+                            let prot = Wands.getPrototype(code.id2);
+                       let c = MagicCore.getValue(player);
+                       let w = Wands.getStick(item.id);
+                       if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
+                           if(c.magis >= prot.activate.magis - w.bonus.magis){
+                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
+                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
+                           if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
+                           MagicCore.setParameters(player, c);
+                           Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: item, block: {id:0,data:0}, player: player, entity: player});
+                           
+                           
+                           }else{
+                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
+                           }
+                       }else{
+                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
+                        }
+                             
                         }else{
                             PlayerAC.message(player, "нельзя использовать пустое заклинание");
                         }
@@ -185,7 +246,33 @@ Callback.addCallback("PlayerAttack", function(player, entity){
                     if(code.event == "playerAttack")
                     if(Wands.isCompatibility(code.id1, code.id2)){
                         if(code.id2!=0){
-                    Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: {id:0,data:0,count:0}, block: {id:0,data:0}, player: player, entity: entity});
+                            let prot = Wands.getPrototype(code.id2);
+                       let c = MagicCore.getValue(player);
+                       let w = Wands.getStick(item.id);
+                            if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
+                           if(c.magis >= prot.activate.magis - w.bonus.magis){
+                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
+                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
+                          if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
+                          
+                           MagicCore.setParameters(player, c);
+                           
+                           Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: {id:0,data:0,count:0}, block: {id:0,data:0}, player: player, entity: entity});
+                           
+                           
+                           }else{
+                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
+                           }
+                           }else{
+                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
+                           }
+                       }else{
+                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
+                        }
+                    
                         }else{
                             PlayerAC.message(player, "нельзя использовать пустое заклинание");
                         }
@@ -223,19 +310,12 @@ Wands.setPrototype(ItemID.sroll3, {
 Wands.setPrototype(ItemID.sroll4, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        necromancer: 5,
+        aspects: 5
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.necromancer >= 5){
-            if(c.Aspects >= 5){
-                Entity.damageEntity(packet.entity, 6);
-                c.Aspects -= 5;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 5 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна necromancer 5 уровня")
-        }
+        Entity.damageEntity(packet.entity, 6);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -244,19 +324,12 @@ Wands.setPrototype(ItemID.sroll4, {
 Wands.setPrototype(ItemID.sroll5, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        magis: 10,
+        aspects: 5
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis >= 10){
-            if(c.Aspects >= 5){
-                Entity.addEffect(packet.entity, 1, 2, 240, true, false);
-                c.Aspects -= 5;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 5 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 10 уровня");
-        }
+        Entity.addEffect(packet.entity, 1, 2, 240, true, false);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -265,19 +338,12 @@ Wands.setPrototype(ItemID.sroll5, {
 Wands.setPrototype(ItemID.sroll6, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        magis: 10,
+        aspects: 20
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis >= 10){
-            if(c.Aspects >= 20){
-                Entity.healEntity(packet.entity, 5);
-                c.Aspects -= 20;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 20 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 10 уровня");
-        }
+        Entity.healEntity(packet.entity, 5);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -286,19 +352,12 @@ Wands.setPrototype(ItemID.sroll6, {
 Wands.setPrototype(ItemID.sroll7, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        magis: 15,
+        aspects: 20
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis >= 15){
-            if(c.Aspects >= 20){
-                Entity.addEffect(packet.entity, 5, 3, 240, true, false);
-                c.Aspects -= 20;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 20 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 15 уровня");
-        }
+        Entity.addEffect(packet.entity, 5, 3, 240, true, false);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -307,19 +366,18 @@ Wands.setPrototype(ItemID.sroll7, {
 Wands.setPrototype(ItemID.sroll8, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        necromancer: 20
+    },
     setFunction: function(packet){
         let c = MagicCore.getValue(packet.player);
         let helt = Entity.getHealth(packet.entity)*3;
-        if(c.necromancer>=20){
-           if(c.Aspects >= helt){
-                Entity.setHealth(packet.entity, 0);
-                c.Aspects -= helt;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для убийства даного моба нужно "+helt+" аспектов");
-            }
+        if(c.Aspects >= helt){
+            Entity.setHealth(packet.entity, 0);
+            c.Aspects -= helt;
+            MagicCore.setParameters(packet.player, c);
         }else{
-            PlayerAC.message(packet.player, "нужна necromancer 20 уровня")
+            PlayerAC.message(packet.player, "для убийства даного моба нужно "+helt+" аспектов");
         }
     }, 
     installation: function (player, item){
@@ -329,19 +387,12 @@ Wands.setPrototype(ItemID.sroll8, {
 Wands.setPrototype(ItemID.sroll9, {
     type: "function", 
     compatibility: [ItemID.sroll2, ItemID.sroll3], 
+    activate: {
+        magis: 5,
+        aspects: 5
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis>=5){
-            if(c.Aspects >= 5){
-                World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, true);
-                c.Aspects -= 5;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player,"для этого заклинания нужно 5 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 5 уровня");
-        }
+        World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, true);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -350,19 +401,12 @@ Wands.setPrototype(ItemID.sroll9, {
 Wands.setPrototype(ItemID.sroll10, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        necromancer: 10,
+        aspects: 10
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.necromancer >= 10){
-            if(c.Aspects >= 10){
-                Entity.damageEntity(packet.entity, 12);
-                c.Aspects -= 10;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 10 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна necromancer 10 уровня")
-        }
+        Entity.damageEntity(packet.entity, 12);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -371,19 +415,12 @@ Wands.setPrototype(ItemID.sroll10, {
 Wands.setPrototype(ItemID.sroll11, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        necromancer: 15,
+        aspects: 15
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.necromancer >= 15){
-            if(c.Aspects >= 15){
-                Entity.damageEntity(packet.entity, 24);
-                c.Aspects -= 15;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 15 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна necromancer 15 уровня")
-        }
+        Entity.damageEntity(packet.entity, 24);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -392,19 +429,12 @@ Wands.setPrototype(ItemID.sroll11, {
 Wands.setPrototype(ItemID.sroll12, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        magis: 15,
+        aspects: 40
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis >= 15){
-            if(c.Aspects >= 40){
-                Entity.healEntity(packet.entity, 10);
-                c.Aspects -= 40;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 40 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 15 уровня");
-        }
+        Entity.healEntity(packet.entity, 10);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -413,19 +443,12 @@ Wands.setPrototype(ItemID.sroll12, {
 Wands.setPrototype(ItemID.sroll13, {
     type: "function", 
     compatibility: [ItemID.sroll1], 
+    activate: {
+        magis: 20,
+        aspects: 80
+    },
     setFunction: function(packet){
-        let c = MagicCore.getValue(packet.player);
-        if(c.magis >= 20){
-            if(c.Aspects >= 80){
-                Entity.healEntity(packet.entity, 20);
-                c.Aspects -= 80;
-                MagicCore.setParameters(packet.player, c);
-            }else{
-                PlayerAC.message(packet.player, "для этого заклинания нужно 80 аспектов");
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 20 уровня");
-        }
+        Entity.healEntity(packet.entity, 20);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -433,21 +456,20 @@ Wands.setPrototype(ItemID.sroll13, {
 });
 Wands.setPrototype(ItemID.sroll14, {
     type: "function", 
-    compatibility: [ItemID.sroll2, ItemID.sroll3], 
+    compatibility: [ItemID.sroll2, ItemID.sroll3],
+    activate: {
+        magis: 30
+    },
     setFunction: function(packet){
         let c = MagicCore.getValue(packet.player);
-        if(c.magis>=30){
-            if(c.Aspects + 10 <= c.AspectsNow){
-                World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
-                c.Aspects += 10;
-                MagicCore.setParameters(packet.player, c);
-            }else if(c.Aspects <= c.AspectsNow){
-                World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
-                c.Aspects = c.AspectsNow;
-                MagicCore.setParameters(packet.player, c);
-            }
-        }else{
-            PlayerAC.message(packet.player, "нужна magis 30 уровня");
+        if(c.Aspects + 10 <= c.AspectsNow){
+            World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
+            c.Aspects += 10;
+            MagicCore.setParameters(packet.player, c);
+        }else if(c.Aspects <= c.AspectsNow){
+            World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
+            c.Aspects = c.AspectsNow;
+            MagicCore.setParameters(packet.player, c);
         }
     }, 
     installation: function (player, item){
