@@ -110,19 +110,16 @@ var Wands = {
         this.prot[id] = obj;
     }, 
     save: function (data, packet, player){
-        var client = Network.getClientForPlayer(player);
-        if(client != null){
-            client.send("aw.save", {
-                data: data, 
-                code: packet
-            });
-        }
+        Network.sendToAllClients("aw.save", {
+            data: data, 
+            code: packet
+        });
     },
     isCompatibility: function(id1, id2){
         let code1 = this.getPrototype(id1);
         let code2 = this.getPrototype(id2);
         let compatibility = {};
-        for(i in code2.compatibility){
+        for(let i in code2.compatibility){
             let name = code2.compatibility[i];
             compatibility[name] = name;
         }
@@ -131,6 +128,47 @@ var Wands = {
         }else{
             return true;
         }
+    },
+    addCompatibility: function (srool, id){
+        this.prot[srool].compatibility.push(id);
+    },
+    addEvent: function (item, player, name, packet){
+        if(Wands.isStick(item.id)){
+            if(item.data != 0){
+                let code = Wands.getCode(item.data);
+                if(code.event == name)
+                if(Wands.isCompatibility(code.id1, code.id2)){
+                    if(code.id2!=0){
+                        let prot = Wands.getPrototype(code.id2);
+                        let c = MagicCore.getValue(player);
+                        let w = Wands.getStick(item.id);
+                        if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
+                            if(c.magis >= prot.activate.magis - w.bonus.magis){
+                                if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
+                                    if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
+                                        if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
+                                            MagicCore.setParameters(player, c);
+                                            Wands.getPrototype(code.id2).setFunction(packet);
+                                        }else{
+                                           PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
+                                        }
+                                    }else{
+                                        PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
+                                    }
+                                }else{
+                                    PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
+                                }
+                            }else{
+                                PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
+                            }
+                        }else{
+                            PlayerAC.message(player, "нельзя использовать пустое заклинание");
+                    }
+                }else{
+                    PlayerAC.message(player, Item.getName(code.id1)+" не совместимо с "+Item.getName(code.id2));
+                }
+            } 
+        } 
     }
 };
 Network.addClientPacket("aw.w", function(packetData) {
@@ -151,140 +189,40 @@ var PlayerAC = {
     }
 };
 Callback.addCallback("ItemUse", function(coords, item, block, isExternal, player){
-    if(Wands.isStick(item.id)){
-        if(item.data != 0){
-            if(block.id!=BlockID.MagicConnector){
-                let code = Wands.getCode(item.data);
-                if(code.event == "itemUse")
-                if(Wands.isCompatibility(code.id1, code.id2)){
-                    if(code.id2!=0){
-                       let prot = Wands.getPrototype(code.id2);
-                       let c = MagicCore.getValue(player);
-                       let w = Wands.getStick(item.id);
-                       if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
-                           if(c.magis >= prot.activate.magis - w.bonus.magis){
-                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
-                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
-                           if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
-                           MagicCore.setParameters(player, c);
-                           
-                           Wands.getPrototype(code.id2).setFunction({coords: coords, item: item, block: block, player: player, entity: player});
-                           
-                           
-                           }else{
-                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
-                           }
-                       }else{
-                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
-                        }
-                        
-                        
-                    }else{
-                        PlayerAC.message(player, "нельзя использовать пустое заклинание");
-                    }
-            }else{
-                PlayerAC.message(player, Item.getName(code.id1)+" не совместимо с "+Item.getName(code.id2));
-            }
-           } 
-        } 
+    if(block.id!=BlockID.MagicConnector){
+        Wands.addEvent(item, player, "itemUse", {coords: coords, item: item, block: block, player: player, entity: player});
     }
 });
 Callback.addCallback("ItemUsingComplete", function(item, player){
-        if(Wands.isStick(item.id)){
-            if(item.data != 0){
-                let code = Wands.getCode(item.data);
-                    if(code.event == "usingReleased"){
-                        if(Wands.isCompatibility(code.id1, code.id2)){
-                        if(code.id2 != 0){
-                            
-                            let prot = Wands.getPrototype(code.id2);
-                       let c = MagicCore.getValue(player);
-                       let w = Wands.getStick(item.id);
-                       if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
-                           if(c.magis >= prot.activate.magis - w.bonus.magis){
-                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
-                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
-                           if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
-                           MagicCore.setParameters(player, c);
-                           Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: item, block: {id:0,data:0}, player: player, entity: player});
-                           
-                           
-                           }else{
-                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
-                           }
-                       }else{
-                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
-                        }
-                             
-                        }else{
-                            PlayerAC.message(player, "нельзя использовать пустое заклинание");
-                        }
-                    }else{
-                    PlayerAC.message(player, Item.getName(code.id1)+" не совместимо с "+Item.getName(code.id2));
-                }
-               } 
-            }
-        }
+    Wands.addEvent(item, player, "usingReleased", {coords: {x:0,y:0,z:0}, item: item, block: {id:0,data:0}, player: player, entity: player});
 });
 Callback.addCallback("PlayerAttack", function(player, entity){
-    let item = Player.getCarriedItem();
-    if(Wands.isStick(item.id)){
-        if(item.data != 0){
-                let code = Wands.getCode(item.data);
-                    if(code.event == "playerAttack")
-                    if(Wands.isCompatibility(code.id1, code.id2)){
-                        if(code.id2!=0){
-                            let prot = Wands.getPrototype(code.id2);
-                       let c = MagicCore.getValue(player);
-                       let w = Wands.getStick(item.id);
-                            if(c.necromancer >= prot.activate.necromancer - w.bonus.necromancer){
-                           if(c.magis >= prot.activate.magis - w.bonus.magis){
-                               if(c.Protection >= prot.activate.Protection - w.bonus.Protection){
-                           if(c.Aspects >= prot.activate.aspects - w.bonus.aspects){
-                          if(0 <= prot.activate.aspects - w.bonus.aspects) c.Aspects -= prot.activate.aspects - w.bonus.aspects;
-                          
-                           MagicCore.setParameters(player, c);
-                           
-                           Wands.getPrototype(code.id2).setFunction({coords: {x:0,y:0,z:0}, item: {id:0,data:0,count:0}, block: {id:0,data:0}, player: player, entity: entity});
-                           
-                           
-                           }else{
-                               PlayerAC.message(player, "нужно " + (prot.activate.aspects - w.bonus.aspects) + " аспектов");
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен Protection " + (prot.activate.Protection - w.bonus.Protection));
-                           }
-                           }else{
-                               PlayerAC.message(player, "нужен magis " + (prot.activate.magis - w.bonus.magis));
-                           }
-                       }else{
-                           PlayerAC.message(player, "нужен necromancer " + (prot.activate.necromancer - w.bonus.necromancer));
-                        }
-                    
-                        }else{
-                            PlayerAC.message(player, "нельзя использовать пустое заклинание");
-                        }
-           }else{
-               PlayerAC.message(player, Item.getName(code.id1)+" не совместимо с "+Item.getName(code.id2));
-            }
-        }
-    }
+    let item = Entity.getCarriedItem(player);
+    Wands.addEvent(item, player, "playerAttack", {coords: {x:0,y:0,z:0}, item: item, block: {id:0,data:0}, player: player, entity: entity});
 });
 Wands.addStick({
     id: ItemID.magis_stick, 
     time: 20
+});
+Wands.addStick({
+    id: ItemID.magis_sword,
+    time: 40,
+    bonus: {
+        necromancer: 15,
+        Protection: -10,
+        magis: 15,
+        aspects: -20
+    }
+});
+Wands.addStick({
+    id: ItemID.magis_pocox,
+    time: 15,
+    bonus: {
+        necromancer: -10,
+        Protection: 10,
+        magis: 15,
+        aspects: -10
+    }
 });
 Wands.setPrototype(ItemID.sroll1, {
     type: "event", 
@@ -471,6 +409,46 @@ Wands.setPrototype(ItemID.sroll14, {
             c.Aspects = c.AspectsNow;
             MagicCore.setParameters(packet.player, c);
         }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll15, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        magis: 10,
+        Protection: 40,
+        aspects: 20
+    },
+    setFunction: function(packet){
+        let pos = Entity.getPosition(packet.entity);
+        let vel = Entity.getLookVectorByAngle(Entity.getLookAngle(packet.entity));
+        Entity.addVelocity(packet.entity, vel.x * 2, vel.y * 2, vel.z * 2);
+        ParticlesAPI.spawnLine(ParticlesAPI.part2, pos.x, pos.y, pos.z, pos.x + (vel.x * 4), pos.y + (vel.y * 4), pos.z + (vel.z * 4), 10);
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll16, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        magis: 15,
+        Protection: 20,
+        aspects: 10
+    },
+    setFunction: function(packet){
+        let pos = Entity.getPosition(packet.entity);
+        Entity.addVelocity(packet.entity, 0, 1, 0);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-1, pos.z, 0.5, 11, 2);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.8, pos.z, 0.7, 11, 2);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.5, pos.z, 1, 11, 2);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.3, pos.z, 1.1, 11, 2);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.1, pos.z, 1.1, 11, 2);
+        ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y+0.1, pos.z, 1.2, 11, 2);
     }, 
     installation: function (player, item){
         delItem(player, item);
