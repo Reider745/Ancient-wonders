@@ -9,13 +9,6 @@ TileEntity.registerPrototype(BlockID.rityalPedestal, {
             data: 0
         }
     }, 
-    init: function(){
-        if(this.data.item.id != 0){
-            this.networkData.putInt("itemId", this.data.item.id);
-            this.networkData.putInt("itemData", this.data.item.data);
-            this.networkData.sendChanges();
-        } 
-    }, 
     client: {
         updateModel: function() {
             var id = Network.serverToLocalId(this.networkData.getInt("itemId"));
@@ -88,23 +81,22 @@ TileEntity.registerPrototype(BlockID.rityalPedestal, {
 IDRegistry.genBlockID("MagicConnector");
 Block.createBlock("MagicConnector", [ {name: "Magic connector", texture: [["MagicReenactor", 0], ["MagicReenactor", 1],["MagicReenactor", 0]], inCreative: true} ]);
 Translation.addTranslation("Magic connector", {ru: "магичиский реконструктор"});
+
 TileEntity.registerPrototype(BlockID.MagicConnector, {
     defaultValues: {
         item: {
             id: 0,
-            data: 0
-        }, 
-        code: {
-            event: "ItemUse", 
-            id1: 0, id2: 0
+            data: 0,
+            extra: null
         }
     }, 
     init: function(){
-        if(this.data.item.id != 0){
-            this.networkData.putInt("itemId", this.data.item.id);
-            this.networkData.putInt("itemData", this.data.item.data);
+        this.isItem();
+        if(this.data.item){
+            if(this.data.item.id) this.networkData.putInt("itemId", this.data.item.id);
+            if(this.data.item.data) this.networkData.putInt("itemData", this.data.item.data);
             this.networkData.sendChanges();
-        } 
+        }
     }, 
     client: {
         updateModel: function() {
@@ -130,86 +122,96 @@ TileEntity.registerPrototype(BlockID.MagicConnector, {
             this.model.destroy();
         }
     },
+    customAnimation: function(item){
+        this.networkData.putInt("itemId", item.id);
+        this.networkData.putInt("itemData", item.data);
+        this.networkData.sendChanges();
+        this.data.item = {
+            id: item.id,
+            data: item.data,
+            extra: item.extra || new ItemExtraData()
+        };
+    }, 
     animation: function(item){
         this.networkData.putInt("itemId", item.id);
         this.networkData.putInt("itemData", item.data);
         this.networkData.sendChanges();
         this.data.item = {
             id: item.id,
-            data: item.data
+            data: item.data,
+            extra: item.extra || new ItemExtraData()
         };
     }, 
-    drop: function(player){
+    drop: function(){
         this.networkData.putInt("itemId", 0);
         this.networkData.putInt("itemData", 0);
         this.networkData.sendChanges();
-        var PA = new BlockSource.getDefaultForActor(player);
-        PA.spawnDroppedItem(this.x, this.y+1,this.z, this.data.item.id, 1, this.data.item.data, null);
+        this.blockSource.spawnDroppedItem(this.x, this.y+1,this.z, this.data.item.id, 1, this.data.item.data, this.data.item.extra);
         this.data.item = {
             id: 0,
-            data: 0
+            data: 0,
+            extra: null
         };
     }, 
+    destroyAnimation: function(){
+        this.networkData.putInt("itemId", 0);
+        this.networkData.putInt("itemData", 0);
+        this.networkData.sendChanges();
+        this.data.item = {
+            id: 0,
+            data: 0,
+            extra: null
+        };
+    }, 
+    isItem: function(){
+        if(!this.data.item) this.data.item = {id: 0, data: 0, extra: null};
+        if(!this.data.item.id) this.data.item.id = 0;
+        if(!this.data.item.data) this.data.item.data = 0;
+        if(!this.data.item.extra) this.data.item.extra = null;
+    },
     click: function(id, count, data, coords, player) {
-        let item = Entity.getCarriedItem(player);
-        var PA = new BlockSource.getDefaultForActor(player);
-        if(this.data.item.id != 0){
-            if(!Wands.isPrototype(id)){
-                if(id == ItemID.bookk){
-                if(this.data.code.id1!=0){
-                    PA.spawnDroppedItem(this.x, this.y+1, this.z, this.data.code.id1, 1, 0, null);
-                    this.data.code.id1 = 0;
-                }
-                if(this.data.code.id2!=0){  
-                    PA.spawnDroppedItem(this.x, this.y+1, this.z, this.data.code.id1, 1, 0, null);
-                    this.data.code.id2 = 0;
-                }
-                this.data.code.setFunction = function(packet){};
-                this.data.code.event = "ItemUse";
-            }else{
-                Wands.save(this.data.item.data, this.data.code, player);
-                this.drop(player);
-                this.data.code = {
-                    event: "ItemUse", 
-                    id1: 0, id2: 0
-                }
-               } 
-            }
-            if(Wands.isPrototype(id)){
-                let code = Wands.getPrototype(id);
-                let dat;
-                if(this.data.item.data == 0){
-                    dat = Math.floor(Math.random()*32000);
-                }else{
-                    dat = this.data.item.data;
-                }
-                if(code.type=="event"){
-                    this.data.code.event = code.event;
-                    if(this.data.code.id1!=0){
-                        PA.spawnDroppedItem(this.x, this.y+1, this.z, this.data.code.id1, 1, 0, null);
-                        this.data.code.id1 = 0;
-                    }
-                    this.data.code.id1 = id;
-                    code.installation(player, item);
-                }
-                if(code.type=="function"){
-                    if(this.data.code.id2!=0){
-                        PA.spawnDroppedItem(this.x, this.y+1, this.z, this.data.code.id1, 1, 0, null);
-                        this.data.code.id2 = 0;
-                    }
-                    this.data.code.id2 = id;
-                    code.installation(player, item);
-                }
-                this.data.item.data = dat;
+        this.isItem();
+        if(Wands.stick[id]){
+            if(this.data.item.id == 0){
+                this.animation({id: id, data: data, extra: Entity.getCarriedItem(player).extra});
+                Entity.setCarriedItem(player, id, count-1, data);
             }
         }else{
-            if(Wands.isStick(id)){
-                delItem(player, item);
-                if(data != 0){
-                    this.data.code = Wcode[data];
+            if(Wands.prot[id] && this.data.item.id != 0){
+                let prot = Wands.prot[id];
+                prot.installation(player, Entity.getCarriedItem(player));
+                if(prot.type == "event"){
+                    this.blockSource.spawnDroppedItem(this.x, this.y+1,this.z, this.data.item.extra.getInt("event", 0), 1, 0, null);
+                    this.data.item.extra.putInt("event", id);
                 }
-                this.animation(item);
+                if(prot.type == "function"){
+                    if(this.data.item.extra.getInt("spell", -9)==-9){
+                        this.data.item.extra.putInt("spell", Object.keys(Wands.data).length);
+                        Wands.data["s" + Object.keys(Wands.data).length] = [];
+                    }
+                    Wands.data["s" + this.data.item.extra.getInt("spell", -9)].push(id);
+                }
+            }else{
+                if(id == ItemID.bookk && this.data.item.id != 0){
+                    if(Entity.getSneaking(player)){
+                        let evn = this.data.item.extra.getInt("event", 0);
+                       this.blockSource.spawnDroppedItem(this.x, this.y+1,this.z, evn, 1, 0, null);
+                       let arr = Wands.data["s" + this.data.item.extra.getInt("spell", -9)];
+                       for(let i in arr){
+                           this.blockSource.spawnDroppedItem(this.x, this.y+1,this.z, arr[i], 1, 0, null);
+                       }
+                        this.data.item.extra.putInt("event", 0);
+                        Wands.data["s" + this.data.item.extra.getInt("spell", -9)] = [];
+                    }else{
+                       if(Wands.data["s" + this.data.item.extra.getInt("spell", -9)].length >= 1) this.blockSource.spawnDroppedItem(this.x, this.y+1,this.z, Wands.data["s" + this.data.item.extra.getInt("spell", -9)].pop(), 1, 0, null);
+                    }
+                }else{
+                    this.drop();
+                }
             }
         }
+    },
+    destroyBlock: function(coords, player){
+        this.drop();
     }
 });
