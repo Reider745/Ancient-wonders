@@ -9,10 +9,14 @@ var classPlayer = {};
 Saver.addSavesScope("class",
     function read(scope) {
         classPlayer = scope.classPlayer || {};
+        Entity.prot = scope.protEntity || {};
+        Wands.data = scope.wandData || {};
     },
     function save() {
         return {
             classPlayer: classPlayer,
+            protEntity: Entity.prot,
+            wandData: Wands.data
         };
     }
 );
@@ -88,7 +92,7 @@ var MagicCore = {
                         ItemA.setArmor(slot, 0, 0, 0, null);
                         b.spawnDroppedItem(coords.x, coords.y, coords.z, id, 1, item.data, item.extra);
                     }else{
-                        Game.message("требуется "+parameter+" уровня "+value)
+                        PlayerAC.message(player, "нужен " + parameter + " уровня " + value);
                     }
                 }else{
                     ItemA.setArmor(slot, 0, 0, 0, null);
@@ -97,6 +101,19 @@ var MagicCore = {
             }
         });
     }, 
+    setUsingItem: function (item, parameter, value){
+        Callback.addCallback("ServerPlayerTick", function(player, isPlayerDead){
+            let item2 = Entity.getCarriedItem(player);
+            let pos = Entity.getPosition(player);
+            if(item2.id == item.id){
+               if(MagicCore.getValue(player)[parameter] < value){
+                   BlockSource.getDefaultForActor(player).spawnDroppedItem(pos.x+Math.random()*2, pos.y-1, pos.z+Math.random()*2, item2.id, item2. count, item2.data, item2.extra);
+                   Entity.setCarriedItem(player, 0, 0, 0);
+                   PlayerAC.message(player, "нужен " + parameter + " уровня " + value);
+               } 
+            }
+        });
+    },
     isClass: function (player){
         let key = Object.keys(classPlayer);
         let obj = {};
@@ -143,10 +160,10 @@ var MagicCore = {
     piece: function(player, parameter){
         if(this.isClass(player)){
             let cv = MagicCore.getValue(player);
-            if(cv[parameter] + 5 <= cv[parameter+"Max"]){
+            if(cv[parameter] + 1 <= cv[parameter+"Max"]){
                 delItem(player, {id:0,data:0,count:1});
-                cv[parameter] += 5;
-                PlayerAC.message(player, "§2параметр: "+parameter+" был улучшен на 5 теперь он равен "+cv[parameter]);
+                cv[parameter] += 1;
+                PlayerAC.message(player, "§2параметр: "+parameter+" был улучшен на 1, теперь он равен "+cv[parameter]);
                 MagicCore.setParameters(player, cv);
             }else{
                 PlayerAC.message(player, "§4параметр "+parameter+" максимального уровня");
@@ -157,6 +174,8 @@ var MagicCore = {
     }, 
     setParameters: function (player, obj){
         if(this.isClass(player)){
+            let r = Math.floor(Math.random()*20);
+            if(obj.AspectsNow + r <= obj.AspectsMax) obj.AspectsNow += r;
             classPlayer[player] = obj;
             Network.sendToServer("aw.sp", classPlayer);
         }
@@ -189,3 +208,16 @@ MagicCore.setArmor(298, "Protection", 10);
 MagicCore.setArmor(299, "Protection", 10);
 MagicCore.setArmor(300, "Protection", 10);
 MagicCore.setArmor(301, "Protection", 10);
+
+MagicCore.setUsingItem({id: 276, data: 0}, "Protection", 45);
+MagicCore.setUsingItem({id: 269, data: 0}, "Protection", 5);
+MagicCore.setUsingItem({id: 272, data: 0}, "Protection", 15);
+MagicCore.setUsingItem({id: 267, data: 0}, "Protection", 25);
+MagicCore.setUsingItem({id: 283, data: 0}, "Protection", 30);
+MagicCore.setUsingItem({id: 368, data: 0}, "magis", 5);
+MagicCore.setUsingItem({id: 381, data: 0}, "magis", 10);
+MagicCore.setUsingItem({id: 432, data: 0}, "magis", 20);
+MagicCore.setUsingItem({id: 322, data: 0}, "necromancer", 10);
+MagicCore.setUsingItem({id: 373, data: 0}, "magis", 30);
+MagicCore.setUsingItem({id: 438, data: 0}, "magis", 35);
+MagicCore.setUsingItem({id: 441, data: 0}, "magis", 40);
