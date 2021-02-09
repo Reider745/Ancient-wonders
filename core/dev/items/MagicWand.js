@@ -1,7 +1,21 @@
+const setTimeout = function(func, ticks){
+    var upd = {
+        ticks: 0,
+        update: function(){
+            this.ticks++
+            if(this.ticks >= ticks){
+                func();
+                this.remove = true
+            }
+        }
+    };
+    Updatable.addUpdatable(upd);
+}
 var Wands = {
     prot: {},
     stick: {},
     data: {},
+    icon: [],
     addStick: function(obj){
         obj.bonus = obj.bonus || {};
         obj.bonus.necromancer = obj.bonus.necromancer || 0;
@@ -10,17 +24,54 @@ var Wands = {
         obj.bonus.aspects = obj.bonus.aspects || 0;
         this.stick[obj.id] = obj;
         Item.setToolRender(obj.id, true);
+        Item.setMaxUseDuration(obj.id, obj.time);
         Item.setUseAnimation(obj.id, Native.ItemAnimation.bow);
-        Item.setMaxUseDuration(obj.id, obj.time)
+        Item.registerIconOverrideFunction(obj.id, function(item, name){
+            let extra = item.extra || new ItemExtraData();
+            let texture = {
+                name: extra.getString("texture", obj.texture.name || "noy"),
+                meta: extra.getInt("meta", obj.texture.meta || 0),
+            };
+            return {name: texture.name, meta: texture.meta}
+
+        });
         Item.registerNameOverrideFunction(obj.id, function(item, name) {
             item.extra = item.extra || new ItemExtraData();
-              name = name + "\n событие: " + Item.getName(item.extra.getInt("event", 0));
+              name = name + "\n " + Translation.translate(Item.getName(item.extra.getInt("event", 0), 0));
               let prot1 = Wands.getSpell(item.extra.getInt("spell", -1));
               for(let i in prot1){
-                  name = name + "\n предмет: " + Item.getName(prot1[i]);
+                  name = name + "\n " + Translation.translate(Item.getName(Wands.getItemId(prot1[i]), 0));
               }
               return name;
         });
+    },
+    addIcon: function(id, name, meta){
+        this.icon.push({
+            name: name,
+            meta: meta,
+            id: id
+        });
+    },
+    addIconAll: function(name, meta){
+        let keys = Object.keys(this.stick);
+        for(let i in keys){
+            this.addIcon(parseInt(keys[i]), name, meta);
+        }
+    },
+    getIconArr: function(id){
+        if(this.stick[id]){
+            let arr = [];
+            arr[0] = {
+                name: this.stick[id].texture.name || "noy",
+                meta: this.stick[id].texture.meta || 0
+            };
+            for(let i in this.icon){
+                if(id == this.icon[i].id) arr.push(this.icon[i]);
+            }
+            return arr;
+        }else{
+            return [];
+        }
     },
     addEvent: function(item, player, name, packet){
         if(this.stick[item.id]){
@@ -31,11 +82,12 @@ var Wands = {
             }
             let prot1 = this.getSpell(extra.getInt("spell", -1));
             if(prot.event == name){
+                let time = 0;
                 for(let i in prot1){
-                    if(this.isCompatibility(extra.getInt("event", 0), prot1[i])){
+                    if(this.isCompatibility(extra.getInt("event", 0), this.getItemId(prot1[i]))){
                      let c = MagicCore.getValue(player);
                      let w = this.getStick(item.id);
-                     let prot2 = this.getPrototype(prot1[i]);
+                     let prot2 = this.getPrototype(this.getItemId(prot1[i]));
                      if(c.necromancer >= prot2.activate.necromancer - w.bonus.necromancer){
                         if(c.magis >= prot2.activate.magis - w.bonus.magis){
                             if(c.Protection >= prot2.activate.Protection - w.bonus.Protection){
@@ -45,7 +97,13 @@ var Wands = {
                                     packet.sroll = prot1;
                                     packet.srollType = extra.getInt("event", 0);
                                     packet.spellI = i;
-                                     if(prot2.setFunction) prot2.setFunction(packet);
+                                    packet.type = name;
+
+                                   prot.using(packet);
+                                    setTimeout(function(){ 
+                                    if(prot2.setFunction) prot2.setFunction(packet);
+                                    }, time);
+                                    time+=prot2.time || 0;
                                     }else{
                                          PlayerAC.message(player, "нужно " + (prot2.activate.aspects - w.bonus.aspects) + " аспектов, для заклинания: "+Item.getName(prot1[i]));
                                     }
@@ -53,7 +111,7 @@ var Wands = {
                                      PlayerAC.message(player, "нужен Protection " + (prot2.activate.Protection - w.bonus.Protection)+", для заклинания: "+Item.getName(prot1[i]));
                                 }
                             }else{
-                                 PlayerAC.message(player, "нужен magis " + (prot2.activate.magis - w.bonus.magis)+", для заклинания: "+Item.getName(prot1[i]));
+                                 PlayerAC.message(player, "нужен magic " + (prot2.activate.magis - w.bonus.magis)+", для заклинания: "+Item.getName(prot1[i]));
                             }
                         }else{
                              PlayerAC.message(player, "нужен necromancer " + (prot2.activate.necromancer - w.bonus.necromancer)+", для заклинания: "+Item.getName(prot1[i]));
@@ -68,17 +126,42 @@ var Wands = {
             }
         }
     },
+    getItemId: function(data){
+        if(typeof data == "object"){
+            return data.id;
+        }else{
+            return data;
+        }
+    },
     emitterEntity: function(entity, obj){
         if(Wands.isCompatibility(obj.srollType, obj.sroll)){
             let prot = Wands.getPrototype(obj.srollType);
             if(prot.event == "itemUse"){
-                Wands.getPrototype(obj.sroll).setFunction({coords: obj.packet.coords, block: obj.packet.block, player: entity, entity: entity});
+               let time = 0;
+               for(let i in obj.sroll){
+                   setTimeout(function(){ 
+                       Wands.getPrototype(obj.sroll[i]).setFunction({coords: obj.packet.coords, block: obj.packet.block, player: entity, entity: entity});
+                   }, time);
+                   time+=Wands.getPrototype(obj.sroll[i]).time || 0;
+               } 
             }
             if(prot.event == "usingReleased"){
-                Wands.getPrototype(obj.sroll).setFunction({coords: {x:0,y:0,z:0}, block: {id:0,data:0}, player: entity, entity: entity});
+               let time = 0;
+               for(let i in obj.sroll){
+                   setTimeout(function(){ 
+                       Wands.getPrototype(obj.sroll[i]).setFunction({coords: {x:0,y:0,z:0}, block: {id:0,data:0}, player: entity, entity: entity});
+                   }, time);
+                   time+=Wands.getPrototype(obj.sroll[i]).time || 0;
+               } 
             }
             if(prot.event == "playerAttack"){
-                Wands.getPrototype(obj.sroll).setFunction({coords: {x:0,y:0,z:0}, block: {id:0,data:0}, player: entity, entity: obj.packet.entity});
+               let time = 0;
+               for(let i in obj.sroll){
+                   setTimeout(function(){ 
+                       Wands.getPrototype(obj.sroll[i]).setFunction({coords: {x:0,y:0,z:0}, block: {id:0,data:0}, player: entity, entity: obj.packet.entity});
+                   }, time);
+                   time+=Wands.getPrototype(obj.sroll[i]).time || 0;
+               } 
             }
         }
     },
@@ -89,6 +172,62 @@ var Wands = {
         obj.activate.magis = obj.activate.magis || 0;
         obj.activate.aspects = obj.activate.aspects || 0;
         this.prot[id] = obj;
+    },
+    decor: {},
+    registerSrollDecoration: function(id){
+        this.decor[id] = {
+            types: [],
+        };
+        this.setPrototype(id, {
+            type: "function", 
+            compatibility: [],
+            setFunction: function(packet){
+                for(let i in Wands.decor[id].types){
+                    if(packet.type == Wands.decor[id].types[i].type){
+                        Wands.decor[id].types[i].func(packet);
+                    }
+                }
+            },
+            installation: function(player, item){
+                delItem(player, item);
+            }
+        })
+        return {
+            id: id,
+            addType: function(name, func){
+                Wands.decor[this.id].types.push({
+                    type: name,
+                    func: func
+                });
+            },
+            getObject: function(){
+                return Wands.decor[this.id];
+            },
+            getId: function(){
+                return this.id;
+            }
+        };
+    },
+    getSrollDecoration: function(id){
+        if(this.decor[id]){
+            return {
+                id: id,
+                addType: function(name, func){
+                    Wands.decor[this.id].types.push({
+                        type: name,
+                        func: func
+                    });
+                },
+                getObject: function(){
+                    return Wands.decor[this.id];
+                },
+                getId: function(){
+                    return this.id;
+                }
+            };
+        }else{
+            return {};
+        }
     },
     getStick: function(id){
         return this.stick[id];
@@ -129,11 +268,25 @@ Network.addClientPacket("aw.c", function(packetData) {
 Network.addClientPacket("aw.text", function(packetData) {
     Game.message(packetData);
 });
+Network.addClientPacket("aw.setFly", function(packetData) {
+    Player.setFlying(packetData.bool);
+    Player.setFlyingEnabled(packetData.bool);
+});
 var PlayerAC = {
     message: function (player, text){
         var client = Network.getClientForPlayer(player);
         if(client != null){
             client.send("aw.text", text);
+        }
+    },
+    setFly: function(player, bool){
+        if(Player.isPlayer(player)){
+            let client = Network.getClientForPlayer(player);
+            if(client != null){
+                client.send("aw.setFly", {
+                    bool: bool
+                });
+            }
         }
     }
 };
@@ -153,25 +306,40 @@ Callback.addCallback("PlayerAttack", function(player, entity){
 
 
 
-
-
-
-
-
-
-
-
-
+if(config.debug.enabled){
+IDRegistry.genItemID("awDebugWand"); 
+Item.createItem("awDebugWand", "debug wand", {name: "stick", meta: 0}, {stack: 1});
+Wands.addStick({
+    id: ItemID.awDebugWand,
+    time: 5,
+    texture: {
+        name: "stick"
+    },
+    bonus: {
+        necromancer: 100,
+        Protection: 100,
+        magis: 100,
+        aspects: 99999999
+    }
+});
+Wands.addIcon(ItemID.awDebugWand, "coal", 0);
+}
 
 //сам код регистрации 
 Wands.addStick({
     id: ItemID.magis_stick, 
-    time: 20
+    time: 20,
+    texture: {
+        name: "magis_stick"
+    },
 });
 MagicCore.setUsingItem({id: ItemID.magis_stick, data: 0}, "magis", 10);
 Wands.addStick({
     id: ItemID.magis_sword,
     time: 30,
+    texture: {
+        name: "magis_sword"
+    },
     bonus: {
         necromancer: 10,
         Protection: -10,
@@ -179,10 +347,13 @@ Wands.addStick({
         aspects: -10
     }
 });
-MagicCore.setUsingItem({id: ItemID.magis_sword, data: 0}, "Protection", 60);
+MagicCore.setUsingItem({id: ItemID.magis_sword, data: 0}, "Protection", 35);
 Wands.addStick({
     id: ItemID.magis_pocox,
     time: 15,
+    texture: {
+        name: "magis_pocox"
+    },
     bonus: {
         necromancer: -10,
         Protection: 5,
@@ -190,10 +361,33 @@ Wands.addStick({
         aspects: -5
     }
 });
+if(config.beta_mode){
+Wands.addStick({
+    id: ItemID.deadAw,
+    time: 10,
+    texture: {
+        name: "deadAw"
+    },
+    bonus: {
+        necromancer: 15,
+        Protection: 10,
+        magis: 15,
+        aspects: 10
+    }
+});
+}
+
+
+
+
+
 MagicCore.setUsingItem({id: ItemID.magis_pocox, data: 0}, "necromancer", 20);
 Wands.setPrototype(ItemID.sroll1, {
     type: "event", 
     event: "itemUse", 
+    using: function(packet){
+
+    },
     installation: function (player, item){
         delItem(player, item);
     }
@@ -201,6 +395,9 @@ Wands.setPrototype(ItemID.sroll1, {
 Wands.setPrototype(ItemID.sroll2, {
     type: "event", 
     event: "usingReleased", 
+    using: function(packet){
+
+    },
     installation: function (player, item){
         delItem(player, item);
     }
@@ -208,6 +405,9 @@ Wands.setPrototype(ItemID.sroll2, {
 Wands.setPrototype(ItemID.sroll3, {
     type: "event", 
     event: "playerAttack", 
+    using: function(packet){
+
+    },
     installation: function (player, item){
         delItem(player, item);
     }
@@ -220,7 +420,7 @@ Wands.setPrototype(ItemID.sroll4, {
         aspects: 10
     },
     setFunction: function(packet){
-        Entity.damageEntity(packet.entity, 3);
+        MagicCore.damage(packet.entity, "magic", 3);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -278,7 +478,7 @@ Wands.setPrototype(ItemID.sroll8, {
         let c = MagicCore.getValue(packet.player);
         let helt = Entity.getHealth(packet.entity)*3;
         if(c.Aspects >= helt){
-            Entity.setHealth(packet.entity, 0);
+            MagicCore.damage(packet.entity, "dead", 40);
             c.Aspects -= helt;
             MagicCore.setParameters(packet.player, c);
         }else{
@@ -297,7 +497,7 @@ Wands.setPrototype(ItemID.sroll9, {
         aspects: 5
     },
     setFunction: function(packet){
-        World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, true);
+        BlockSource.getDefaultForActor(packet.player).destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, true);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -311,7 +511,7 @@ Wands.setPrototype(ItemID.sroll10, {
         aspects: 50
     },
     setFunction: function(packet){
-        Entity.damageEntity(packet.entity, 14);
+        MagicCore.damage(packet.entity, "magic", 14);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -325,7 +525,7 @@ Wands.setPrototype(ItemID.sroll11, {
         aspects: 100
     },
     setFunction: function(packet){
-        Entity.damageEntity(packet.entity, 58);
+        MagicCore.damage(packet.entity, "magic", 58);
     }, 
     installation: function (player, item){
         delItem(player, item);
@@ -368,11 +568,11 @@ Wands.setPrototype(ItemID.sroll14, {
     setFunction: function(packet){
         let c = MagicCore.getValue(packet.player);
         if(c.Aspects + 10 <= c.AspectsNow){
-            World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
+           BlockSource.getDefaultForActor(packet.entity).destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
             c.Aspects += 10;
             MagicCore.setParameters(packet.player, c);
         }else if(c.Aspects <= c.AspectsNow){
-            World.destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
+             BlockSource.getDefaultForActor(packet.entity).destroyBlock(packet.coords.x,packet.coords.y,packet.coords.z, false);
             c.Aspects = c.AspectsNow;
             MagicCore.setParameters(packet.player, c);
         }
@@ -446,9 +646,9 @@ Wands.setPrototype(ItemID.sroll17, {
                 };
                 let ent3 = Entity.getAllInRange(coord, 4);
                 for(let i1 in ent3){
-                    if(ent3[i1] != packet.entity) Entity.damageEntity(ent3[i1], 4);
+                    if(ent3[i1] != packet.entity) MagicCore.damage(ent3[i1], "magic", 4);
                 }
-                 if(World.getBlockID(coord.x,coord.y,coord.z)!=0){
+                 if(BlockSource.getDefaultForActor(packet.entity).getBlockId(coord.x,coord.y,coord.z)!=0){
                     break;
                 }
                 Mp.spawnParticle(ParticlesAPI.part3, coord.x, coord.y, coord.z);
@@ -539,6 +739,314 @@ Wands.setPrototype(ItemID.sroll21, {
             }
         }
     }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll22, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        magis: 5,
+        necromancer: 30,
+        aspects: 100
+    },
+    setFunction: function(packet){
+        let pos = Entity.getPosition(packet.entity);
+        pos.y+=0.5;
+        let vel = Entity.getLookVectorByAngle(Entity.getLookAngle(packet.entity));
+        for(let i = 0;i<50;i++){
+            let coord = {
+                x: pos.x+(i * vel.x / 2),
+                y: pos.y+(i * vel.y / 2),
+                z: pos.z+(i * vel.z / 2)
+            };
+            let ent3 = Entity.getAllInRange(coord, 2);
+            for(let i1 in ent3){
+                if(ent3[i1] != packet.entity) MagicCore.damage(ent3[i1], "dead", 40);
+            }
+             if(BlockSource.getDefaultForActor(packet.entity).getBlockId(coord.x,coord.y,coord.z)!=0){
+                break;
+            }
+            Mp.spawnParticle(ParticlesAPI.part4, coord.x, coord.y, coord.z);
+        }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll23, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        Protection: 10,
+        necromancer: 40,
+        aspects: 250
+    },
+    setFunction: function(packet){
+        for(let i = 0;i<=Math.floor(Math.random()*15);i++){
+            let pos = Entity.getPosition(packet.entity);
+            pos.x += ((Math.random()*8)-(Math.random()*8));
+            pos.y += 5;
+            pos.z += ((Math.random()*8)-(Math.random()*8));
+            for(let i = 0;i<60;i++){
+                let coord = {
+                    x: pos.x,
+                    y: pos.y+(i * -0.3),
+                    z: pos.z
+                };
+                let ent3 = Entity.getAllInRange(coord, 2);
+                for(let i1 in ent3){
+                    if(ent3[i1] != packet.entity) MagicCore.damage(ent3[i1], "dead", 40);
+                }
+                 if(BlockSource.getDefaultForActor(packet.entity).getBlockId(coord.x,coord.y,coord.z)!=0){
+                    break;
+                }
+                Mp.spawnParticle(ParticlesAPI.part4, coord.x, coord.y, coord.z);
+            }
+        }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll24, {
+    type: "function", 
+    compatibility: [ItemID.sroll1, ItemID.sroll3],
+    activate: {
+        magis: 55,
+        necromancer: 15,
+    },
+    setFunction: function(packet){
+        for(let i = 0;i<=Math.floor(Math.random()*15);i++){
+            let pos = Entity.getPosition(packet.entity);
+            let pos1 = pos;
+            pos.x += ((Math.random()*8)-(Math.random()*8));
+            pos.y += ((Math.random()*8)-(Math.random()*8));
+            pos.z += ((Math.random()*8)-(Math.random()*8));
+            let c = MagicCore.getValue(packet.player);
+            if(Math.random()<=0.1){
+                BlockSource.getDefaultForActor(packet.entity).explode(pos1.x, pos1.y, pos1.z, 4, false)
+            }else if(c.AspectsNow >= c.Aspects+3){
+                Mp.spawnParticle(ParticlesAPI.part2, pos1.x, pos1.y, pos1.z, 0, 0, 0);
+               c.Aspects+=3;
+               MagicCore.setParameters(packet.player, c);
+            }
+        }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll25, {
+    type: "function", 
+    compatibility: [ItemID.sroll1, ItemID.sroll3],
+    activate: {
+        magis: 55,
+        necromancer: 50,
+    },
+    setFunction: function(packet){
+        for(let i = 0;i<=Math.floor(Math.random()*18);i++){
+            let pos = Entity.getPosition(packet.entity);
+            let pos1 = pos;
+            pos.x += ((Math.random()*8)-(Math.random()*8));
+            pos.y += ((Math.random()*8)-(Math.random()*8));
+            pos.z += ((Math.random()*8)-(Math.random()*8));
+            let c = MagicCore.getValue(packet.player);
+            if(Math.random()<=0.1){
+                BlockSource.getDefaultForActor(packet.entity).explode(pos1.x, pos1.y, pos1.z, 4, false)
+            }else if(c.AspectsNow >= c.Aspects+6){
+                Mp.spawnParticle(ParticlesAPI.part2, pos1.x, pos1.y, pos1.z, 0, 0, 0);
+               c.Aspects+=6;
+               MagicCore.setParameters(packet.player, c);
+            }
+        }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll26, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        magis: 50,
+        necromancer: 20,
+        Protection: 15,
+        aspects: 30
+    },
+    setFunction: function(packet){
+        let pos = Entity.getPosition(packet.entity);
+        let vel = Entity.getLookVectorByAngle(Entity.getLookAngle(packet.entity));
+        for(let i = 0;i<25;i++){
+            let coord = {
+                x: pos.x+(i * vel.x / 2),
+                y: pos.y+0.5+(i * vel.y / 2),
+                z: pos.z+(i * vel.z / 2)
+            };
+             if(BlockSource.getDefaultForActor(packet.entity).getBlockId(coord.x,coord.y,coord.z)!=0){
+                BlockSource.getDefaultForActor(packet.entity).explode(coord.x, coord.y, coord.z, 8, false)
+                break;
+            }
+            Mp.spawnParticle(ParticlesAPI.part3, coord.x, coord.y, coord.z);
+        }
+    }, 
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll27, {
+    type: "function", 
+    compatibility: [],
+    time: 10,
+    activate: {
+        magis: 10,
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll28, {
+    type: "function", 
+    compatibility: [],
+    time: 20,
+    activate: {
+        magis: 10,
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+
+//декоративные заклинания
+
+Wands.setPrototype(ItemID.decor1, {
+    type: "function", 
+    compatibility: [],
+    setFunction: function (packet){
+        if(packet.type == "usingReleased"){
+            let pos = Entity.getPosition(packet.entity);
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x-.5, pos.y-.5, pos.z-.5, 0.5, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x-.5, pos.y-0.8-.5, pos.z-.5, 0.7, 11, 2);
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x-.5, pos.y-0.3 - .5, pos.z-.5, 1.1, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x-.5, pos.y-0.1-.5, pos.z-.5, 1.1, 11, 2);
+        }
+        if(packet.type == "playerAttack"){
+            let pos = Entity.getPosition(packet.entity);
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x -.5, pos.y-1+.3, pos.z-.5, 0.5, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x -.6, pos.y-0.8+.3, pos.z-.5, 0.7, 11, 2);
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x - .5, pos.y-0.3+.3, pos.z-.5, 1.1, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x -.5, pos.y-0.1+.3, pos.z-.5, 1.1, 11, 2);
+        }
+        if(packet.type == "itemUse"){
+            let pos = packet.coords;
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-1+2, pos.z, 0.5, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.8+2, pos.z, 0.7, 11, 2);
+             ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.3+2, pos.z, 1.1, 11, 2);
+            ParticlesAPI.spawnCircle(ParticlesAPI.part1, pos.x, pos.y-0.1+2, pos.z, 1.1, 11, 2);
+        }
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.decor2, {
+    type: "function", 
+    compatibility: [],
+    setFunction: function (packet){
+        if(packet.type == "usingReleased"){
+            let pos = Entity.getPosition(packet.entity);
+            for(let i = 0;i <= 10;i++){
+                 ParticlesAPI.spawnCircle(ParticlesAPI.part4, pos.x-.5, pos.y+1-2.8, pos.z-.5, i / 2, 11 * i, 2);
+            }
+        }
+        if(packet.type == "playerAttack"){
+            let pos = Entity.getPosition(packet.entity);
+            for(let i = 0;i <= 10;i++){
+                 ParticlesAPI.spawnCircle(ParticlesAPI.part4, pos.x - .5, pos.y-.1, pos.z-.5, i / 2, 11 * i, 2);
+            }
+        }
+        if(packet.type == "itemUse"){
+            let pos = packet.coords;
+            for(let i = 0;i <= 10;i++){
+                 ParticlesAPI.spawnCircle(ParticlesAPI.part4, pos.x, pos.y+1, pos.z, i / 2, 11 * i, 2);
+            }
+        }
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+
+Wands.setPrototype(ItemID.decor3, {
+    type: "function", 
+    compatibility: [],
+    setFunction: function (packet){
+        if(packet.type == "usingReleased"){
+            let pos = Entity.getPosition(packet.entity);
+            for(let i = 0;i <= 40;i++){
+                 let coords = {
+                     x: pos.x + (Math.random()*8 - Math.random()*8),
+                     y: pos.y + (Math.random()*8 - Math.random()*8),
+                     z: pos.z + (Math.random()*8 - Math.random()*8)
+                 };
+                 let v = ParticlesAPI.getVector(pos, coords);
+                 Mp.spawnParticle(ParticlesAPI.part2, coords.x, coords.y, coords.z, (v.x / 50), (v.y / 50), (v.z / 50));
+            }
+        }
+        if(packet.type == "playerAttack"){
+            let pos = Entity.getPosition(packet.entity);
+            for(let i = 0;i <= 40;i++){
+                 let coords = {
+                     x: pos.x + (Math.random()*8 - Math.random()*8),
+                     y: pos.y + (Math.random()*8 - Math.random()*8),
+                     z: pos.z + (Math.random()*8 - Math.random()*8)
+                 };
+                 let v = ParticlesAPI.getVector(pos, coords);
+                 Mp.spawnParticle(ParticlesAPI.part2, coords.x, coords.y, coords.z, (v.x / 50), (v.y / 50), (v.z / 50));
+            }
+        }
+        if(packet.type == "itemUse"){
+            let pos = packet.coords;
+            for(let i = 0;i <= 40;i++){
+                 let coords = {
+                     x: pos.x + (Math.random()*8 - Math.random()*8),
+                     y: pos.y + (Math.random()*8 - Math.random()*8),
+                     z: pos.z + (Math.random()*8 - Math.random()*8)
+                 };
+                 let v = ParticlesAPI.getVector(pos, coords);
+                 Mp.spawnParticle(ParticlesAPI.part2, coords.x, coords.y, coords.z, (v.x / 50), (v.y / 50), (v.z / 50));
+            }
+        }
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll29, {
+    type: "function", 
+    compatibility: [ItemID.sroll1],
+    activate: {
+        magis: 10,
+        Protection: 20
+    },
+    setFunction: function (packet){
+        EffectAPI.clearAll(packet.entity);
+    },
+    installation: function (player, item){
+        delItem(player, item);
+    }
+});
+Wands.setPrototype(ItemID.sroll30, {
+    type: "function", 
+    compatibility: [ItemID.sroll1, ItemID.sroll3],
+    activate: {
+        magis: 15,
+        Protection: 10
+    },
+    setFunction: function (packet){
+        EffectAPI.add(packet.player, "fly", 20 * 30, 1);
+    },
     installation: function (player, item){
         delItem(player, item);
     }
