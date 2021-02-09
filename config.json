@@ -1,3 +1,16 @@
 {
-  "enabled":true
+  "enabled":true,
+  "beta_mode":false,
+  "structure":{
+    "House_of_magicians":450,
+    "Temple":450,
+    "Ordinary_temple":450,
+    "Tower_of_darkness":2,
+    "Tower_of_evil":450,
+    "fortress":450,
+    "Temple_of_magicians":350
+  },
+  "debug":{
+    "enabled":false
+  }
 }

@@ -11,12 +11,14 @@ Saver.addSavesScope("class",
         classPlayer = scope.classPlayer || {};
         Entity.prot = scope.protEntity || {};
         Wands.data = scope.wandData || {};
+        //Potion.potions = scope.potion || {};
     },
     function save() {
         return {
             classPlayer: classPlayer,
             protEntity: Entity.prot,
-            wandData: Wands.data
+            wandData: Wands.data,
+            //potion: Potion.potions
         };
     }
 );
@@ -35,7 +37,7 @@ const Class = {
     }, 
     warrior: {
         name: "warrior", 
-        magisMax: 10,
+        magisMax: 15,
         magis: 0,
         ProtectionMax: 100,
         Protection: 10,
@@ -71,6 +73,9 @@ Callback.addCallback("PlayerAttack", function(player){
     }
 });
 function delItem(player, item){
+    Entity.setCarriedItem(player, item.id, item.count-1, item.data);
+}
+function delItem2(player, item){
     let pa = new PlayerActor(player);
     if(pa.getGameMode() == 0){
         Entity.setCarriedItem(player, item.id, item.count-1, item.data);
@@ -91,9 +96,10 @@ var MagicCore = {
                     if(c[parameter] < value){
                         ItemA.setArmor(slot, 0, 0, 0, null);
                         b.spawnDroppedItem(coords.x, coords.y, coords.z, id, 1, item.data, item.extra);
-                    }else{
                         PlayerAC.message(player, "нужен " + parameter + " уровня " + value);
-                    }
+                    }/*else{
+                        PlayerAC.message(player, "нужен " + parameter + " уровня " + value);
+                    }*/
                 }else{
                     ItemA.setArmor(slot, 0, 0, 0, null);
                     b.spawnDroppedItem(coords.x, coords.y, coords.z, id, 1, item.data, item.extra);
@@ -161,7 +167,7 @@ var MagicCore = {
         if(this.isClass(player)){
             let cv = MagicCore.getValue(player);
             if(cv[parameter] + 1 <= cv[parameter+"Max"]){
-                delItem(player, {id:0,data:0,count:1});
+                delItem2(player, {id:0,data:0,count:1});
                 cv[parameter] += 1;
                 PlayerAC.message(player, "§2параметр: "+parameter+" был улучшен на 1, теперь он равен "+cv[parameter]);
                 MagicCore.setParameters(player, cv);
@@ -178,6 +184,92 @@ var MagicCore = {
             if(obj.AspectsNow + r <= obj.AspectsMax) obj.AspectsNow += r;
             classPlayer[player] = obj;
             Network.sendToServer("aw.sp", classPlayer);
+        }
+    },
+    armorMagic: {},
+    addArmorMagic: function (id, type, value){
+        this.armorMagic[id] = {
+            type: type,
+            value: value
+        };
+    },
+    getArmorMagic: function (ent){
+        let arm = {};
+        if(this.armorMagic[Entity.getArmorSlot(ent, 0).id]){
+            arm.helmet = this.armorMagic[Entity.getArmorSlot(ent, 0).id];
+        }else{
+            arm.helmet = {
+                type: "noy",
+                value: 0
+            };
+        }
+        if(this.armorMagic[Entity.getArmorSlot(ent, 1).id]){
+            arm.chestplate = this.armorMagic[Entity.getArmorSlot(ent, 1).id];
+        }else{
+            arm.chestplate = {
+                type: "noy",
+                value: 0
+            };
+        }
+        if(this.armorMagic[Entity.getArmorSlot(ent, 2).id]){
+            arm.leggings = this.armorMagic[Entity.getArmorSlot(ent, 2).id];
+        }else{
+            arm.leggings = {
+                type: "noy",
+                value: 0
+            };
+        }
+        if(this.armorMagic[Entity.getArmorSlot(ent, 3).id]){
+            arm.boots = this.armorMagic[Entity.getArmorSlot(ent, 3).id];
+        }else{
+            arm.boots = {
+                type: "noy",
+                value: 0
+            };
+        }
+        return arm;
+    },
+    damage: function (ent, type, damage){
+        let arm = this.getArmorMagic(ent);
+        if(type == "magic"){
+            let dmg = damage;
+            if(arm.helmet.type == "magic"){
+                dmg -= arm.helmet.value || 0;
+            }
+            if(arm.chestplate.type == "magic"){
+                dmg -= arm.chestplate.value || 0;
+            }
+            if(arm.leggings.type == "magic"){
+                dmg -= arm.leggings.value || 0;
+            }
+            if(arm.boots.type == "magic"){
+                dmg -= arm.boots.value || 0;
+            }
+            if(dmg >= 1) Entity.damageEntity(ent, dmg);
+        }else if(type == "dead"){
+            let m = "y";
+            let dmg = damage;
+            if(arm.helmet.type == "dead"){
+                m = "n";
+                dmg -= arm.helmet.value || 0;
+            }
+            if(arm.chestplate.type == "dead"){
+                m = "n";
+                dmg -= arm.chestplate.value || 0;
+            }
+            if(arm.leggings.type == "dead"){
+                m = "n";
+                dmg -= arm.leggings.value || 0;
+            }
+            if(arm.boots.type == "dead"){
+                m = "n";
+                dmg -= arm.boots.value || 0;
+            }
+            if(m == "y"){
+                Entity.setHealth(ent, 0);
+            }else{
+                if(dmg >> 0) Entity.damageEntity(ent, dmg);
+            }
         }
     }
 };

@@ -67,17 +67,17 @@ bitmap: "btn_close", scale: 3},
     }
 };
 Callback.addCallback("ItemUse", function(coords, item, block, isExternal, player){
-    if(item.id == ItemID.bookk){
+    if(item.id == ItemID.bookk && block.id != BlockID.MagicConnector && block.id != BlockID.magicController){
     var client = Network.getClientForPlayer(player);
-    if (client) {
-        if(Entity.getSneaking(player)==false){
-            if(block.id != BlockID.rityalPedestal){
+        if(client) {
+            if(Entity.getSneaking(player)==false){
+                if(block.id != BlockID.rityalPedestal){
                 BookAPI.open(player);
-            } 
-        }else{
+                } 
+          }else{
             let c = MagicCore.getValue(player);
-            PlayerAC.message(player, c.Aspects + "/" + c.AspectsNow);
+               PlayerAC.message(player, c.Aspects + "/" + c.AspectsNow);
+            }
         }
-    }
     }
 });

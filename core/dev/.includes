@@ -5,6 +5,9 @@ core/MagisCore.js
 core/TimeAPI.js
 core/renderAPI.js
 core/ConvertedID.js
+core/ParticlesAPI.js
+core/AncientWonders.js
+core/EffectAPI.js
 
 items/item.js
 items/book.js
@@ -14,8 +17,13 @@ block/block.js
 
 ritual/clone.js
 ritual/1lvl.js
+ritual/spawn.js
+
+categor.js
 
 craft.js
+
+
 
 
 

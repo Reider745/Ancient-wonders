@@ -1,6 +1,6 @@
 ConfigureMultiplayer({
     name: "aw", 
-    version: "release 0.1", 
+    version: "0.7", 
     isClientOnly: false
 });
 Launch();

@@ -53,19 +53,36 @@ var ParticlesAPI = {
         render: 2,
         size: [2, 2],
         lifetime:[50, 50],
-        color: [181, 22, 22, 1],
+        color: [255, 255, 0, 1],
         animators: {
             alpha:{fadeIn: .4, fadeOut: .4},
             size:{fadeOut: .5, fadeIn:0.2, start:0, end:0}
         }
     }),
-    getVector: function (pos1, pos2){
-        let vector = {
-            x: Math.sign(pos1.x-pos2.x),
-            y: Math.sign(pos1.y-pos2.y),
-            z: Math.sign(pos1.z-pos2.z)
+    part4: Particles.registerParticleType({
+        texture: "aw_magis",
+        render: 2,
+        size: [2, 2],
+        lifetime:[50, 50],
+        color: [227, 0, 72, 1],
+        animators: {
+            alpha:{fadeIn: .4, fadeOut: .4},
+            size:{fadeOut: .5, fadeIn:0.2, start:0, end:0}
         }
-        return vector;
+    }),
+    part5: Particles.registerParticleType({
+        texture: "aw_magis",
+        render: 2,
+        size: [2, 2],
+        lifetime:[1,1],
+        color: [227, 0, 72, 1] 
+    }),
+    getVector: function (pos1, pos2){
+        return {
+            x: Math.max(pos1.x, pos2.x)-Math.min(pos1.x, pos2.x),
+            y: Math.max(pos1.y, pos2.y)-Math.min(pos1.y, pos2.y),
+            z: Math.max(pos1.z, pos2.z)-Math.min(pos1.z, pos2.z)
+        };
     },
     coords: function(part, x1, y1, z1, x2, y2, z2, time){
         var vx = -((x1 + 0.5) - (x2 + 0.5)) / time;
@@ -126,12 +143,23 @@ var ParticlesAPI = {
             };
             let ent3 = Entity.getAllInRange(coord, 2);
             for(let i1 in ent3){
-                if(ent3[i1] != ent) Entity.damageEntity(ent3[i1], damage);
+                if(ent3[i1] != ent) MagicCore.damage(ent3[i1], "magic", damage);
             }
-             if(World.getBlockID(coord.x,coord.y,coord.z)!=0){
+             if(BlockSource.getDefaultForActor(ent).getBlockId(coord.x,coord.y,coord.z)!=0){
                 break;
             }
             Mp.spawnParticle(part, coord.x, coord.y, coord.z);
         }
-    }
+    },
+    spawnCircle2: function (particles, x, y, z, radius, count, time){
+        let circle = 0;
+        for(let i = 0;i<=count;i++){
+            setTimeout(function(){
+                let x1 = x + radius * Math.cos(circle);
+                let z1 = z - radius * Math.sin(circle);
+                Mp.spawnParticle(particles, x1 + 0.5, y + 0.5, z1 + 0.5, 0, 0, 0);
+                circle+=360/count/i;
+            }, time * i * 2);
+        }
+    },
 };
